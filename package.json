@@ -1,0 +1,13 @@
+{
+  "name": "textbin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Простой внутренний сервис: залил текст — получил URL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
