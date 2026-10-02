@@ -26,7 +26,7 @@ APP_NAME="textbin"
 PORT=8090
 BASE_PATH="/textbin"
 PUBLIC_URL="https://nikitosfrolov.ru${BASE_PATH}"
-# Сайт nikitosfrolov.ru подключает все *.conf из этой папки (репо nikitosfrolov).
+# Сайт nikitosfrolov.ru подключает все *.conf из этой папки.
 NGINX_SNIPPET="/etc/nginx/snippets/nikitosfrolov/textbin.conf"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

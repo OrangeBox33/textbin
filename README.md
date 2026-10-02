@@ -96,7 +96,7 @@ curl https://nikitosfrolov.ru/textbin/frolovn/update-tokens-ui-kit
 nginx: `./deploy.sh --nginx` кладёт `deploy/nginx.textbin.conf` в
 `/etc/nginx/snippets/nikitosfrolov/textbin.conf`, проверяет `nginx -t` и перечитывает
 конфиг (при ошибке откатывает фрагмент). Сам сайт `nikitosfrolov.ru` (домен, TLS,
-`include snippets/nikitosfrolov/*.conf;`) живёт в репо `nikitosfrolov`.
+`include snippets/nikitosfrolov/*.conf;`) — `/etc/nginx/sites-available/nikitosfrolov.ru` на сервере.
 Префикс не срезается — сервис знает про него сам через `BASE_PATH`.
 
 Старый адрес `kvadratnikitosa.ru/bankiru/...` отдаёт 308 на `nikitosfrolov.ru/textbin/...`.
