@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Деплой textbin на kvadratnikitosa.ru/bankiru одной командой.
+# Деплой textbin на nikitosfrolov.ru/textbin одной командой.
 #
 #   ./deploy.sh              залить и перезапустить pm2
 #   ./deploy.sh --setup      однократная настройка сервера (pm2, каталог данных, автозапуск)
@@ -8,7 +8,7 @@
 #   ./deploy.sh --status     что сейчас крутится
 #   ./deploy.sh --restart    перезапустить, ничего не заливая
 #   ./deploy.sh --dry-run    показать, что бы залилось, но не заливать
-#   ./deploy.sh --nginx      напечатать блок для nginx (location /bankiru/)
+#   ./deploy.sh --nginx      поставить/обновить location /textbin/ в nginx (nikitosfrolov.ru)
 #   ./deploy.sh --backup     скачать тексты с сервера в ./backup/
 #
 # Сборки нет: зависимостей ноль, на сервер уезжает сам server.js.
@@ -24,8 +24,10 @@ REMOTE_DIR="${TEXTBIN_REMOTE_DIR:-/root/dev/textbin}"
 DATA_DIR="${TEXTBIN_DATA_DIR:-/root/dev/textbin-data}"
 APP_NAME="textbin"
 PORT=8090
-BASE_PATH="/bankiru"
-PUBLIC_URL="https://kvadratnikitosa.ru${BASE_PATH}"
+BASE_PATH="/textbin"
+PUBLIC_URL="https://nikitosfrolov.ru${BASE_PATH}"
+# Сайт nikitosfrolov.ru подключает все *.conf из этой папки (репо nikitosfrolov).
+NGINX_SNIPPET="/etc/nginx/snippets/nikitosfrolov/textbin.conf"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -43,25 +45,6 @@ die() {
 }
 
 remote() { ssh "$REMOTE" "$REMOTE_ENV $*"; }
-
-nginx_block() {
-	cat <<NGINX
-# textbin на подпути. Вставить в server-блок kvadratnikitosa.ru (тот, что слушает 443).
-# Префикс НЕ срезаем: сервис знает про него сам (BASE_PATH=${BASE_PATH}),
-# поэтому proxy_pass без завершающего слэша.
-location ${BASE_PATH}/ {
-    proxy_pass http://127.0.0.1:${PORT};
-    proxy_set_header Host              \$host;
-    proxy_set_header X-Forwarded-Proto \$scheme;
-    proxy_set_header X-Real-IP         \$remote_addr;
-    client_max_body_size 2m;
-}
-
-location = ${BASE_PATH} {
-    return 301 ${BASE_PATH}/;
-}
-NGINX
-}
 
 while [ $# -gt 0 ]; do
 	case "$1" in
@@ -81,8 +64,25 @@ while [ $# -gt 0 ]; do
 	shift
 done
 
+# ── Nginx ──────────────────────────────────────────────────────────────────
+# Кладём фрагмент в папку, которую подключает сайт. Если nginx -t не прошёл,
+# возвращаем прежний фрагмент (или убираем новый, если прежнего не было).
 if [ "$MODE" = "nginx" ]; then
-	nginx_block
+	say "Nginx: location $BASE_PATH/"
+	scp -q "$ROOT/deploy/nginx.textbin.conf" "$REMOTE:/tmp/textbin.conf"
+	remote "set -e
+		mkdir -p \$(dirname $NGINX_SNIPPET)
+		[ -f $NGINX_SNIPPET ] && cp $NGINX_SNIPPET /tmp/textbin.conf.bak || rm -f /tmp/textbin.conf.bak
+		mv /tmp/textbin.conf $NGINX_SNIPPET
+		if nginx -t 2>/tmp/textbin-nginx-t.log; then
+			systemctl reload nginx && echo '    nginx -t ок, конфиг перечитан'
+		else
+			cat /tmp/textbin-nginx-t.log
+			if [ -f /tmp/textbin.conf.bak ]; then mv /tmp/textbin.conf.bak $NGINX_SNIPPET; else rm -f $NGINX_SNIPPET; fi
+			echo '    nginx -t не прошёл — фрагмент откачен'
+			exit 1
+		fi"
+	ok "$NGINX_SNIPPET"
 	exit 0
 fi
 
@@ -107,7 +107,7 @@ if [ "$MODE" = "setup" ]; then
 	say "Включаю автозапуск pm2 после ребута"
 	remote 'pm2 startup systemd -u root --hp /root' | tail -3
 
-	printf '\n\033[1;32mДальше: ./deploy.sh, потом ./deploy.sh --nginx и вставить блок в конфиг nginx\033[0m\n'
+	printf '\n\033[1;32mДальше: ./deploy.sh и ./deploy.sh --nginx\033[0m\n'
 	exit 0
 fi
 

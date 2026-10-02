@@ -22,8 +22,8 @@ module.exports = {
 				// Каталог данных — рядом, но НЕ внутри деплой-папки:
 				// иначе rsync --delete снёс бы тексты при следующем деплое.
 				DATA_DIR: '/root/dev/textbin-data',
-				// Сервис отдаётся на подпути kvadratnikitosa.ru/bankiru
-				BASE_PATH: '/bankiru',
+				// Сервис отдаётся на подпути nikitosfrolov.ru/textbin
+				BASE_PATH: '/textbin',
 			},
 		},
 	],

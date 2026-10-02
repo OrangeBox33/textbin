@@ -5,8 +5,10 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const PORT = Number(process.env.PORT || 8080);
+// Наружу сервис отдаёт nginx, напрямую порт открывать незачем.
+const HOST = process.env.HOST || '127.0.0.1';
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data'));
-// Сервис живёт на подпути: kvadratnikitosa.ru/bankiru
+// Сервис живёт на подпути: nikitosfrolov.ru/textbin
 const BASE = (process.env.BASE_PATH || '').replace(/\/+$/, '');
 const MAX_BODY = 2 * 1024 * 1024;
 
@@ -483,7 +485,7 @@ const server = http.createServer((req, res) => {
 fs.mkdir(DATA_DIR, { recursive: true })
   .then(loadFromDisk)
   .then((total) => {
-    server.listen(PORT, () => {
+    server.listen(PORT, HOST, () => {
       console.log(`textbin: http://localhost:${PORT}${BASE || ''}`);
       console.log(`данные: ${DATA_DIR} (загружено текстов: ${total})`);
     });

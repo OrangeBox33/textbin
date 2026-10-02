@@ -5,40 +5,41 @@
 
 Без авторизации, без БД, без зависимостей: один `server.js` на встроенном http-модуле Node.
 
-Прод: **https://kvadratnikitosa.ru/bankiru/**
+Прод: **https://nikitosfrolov.ru/textbin/**
 
 ## Запуск локально
 
 ```bash
 node server.js                                  # http://localhost:8080, данные в ./data
-PORT=8090 BASE_PATH=/bankiru node server.js     # как на проде, на подпути
+PORT=8090 BASE_PATH=/textbin node server.js     # как на проде, на подпути
 ```
 
 | Переменная | По умолчанию | |
 |---|---|---|
 | `PORT` | `8080` | порт |
+| `HOST` | `127.0.0.1` | адрес, на котором слушать |
 | `DATA_DIR` | `./data` | каталог с текстами |
-| `BASE_PATH` | пусто | префикс подпути, например `/bankiru` |
+| `BASE_PATH` | пусто | префикс подпути, например `/textbin` |
 
 ## URL-схема
 
 | URL | Что делает |
 |-----|-----------|
-| `/bankiru/` | главная: вводишь свой раздел → попадаешь в него |
-| `/bankiru/frolovn/` | список твоих текстов + кнопка СОЗДАТЬ |
-| `/bankiru/frolovn/new` | форма создания: `path` + текст |
-| `/bankiru/frolovn/update-tokens-ui-kit` | сам текст |
+| `/textbin/` | главная: вводишь свой раздел → попадаешь в него |
+| `/textbin/frolovn/` | список твоих текстов + кнопка СОЗДАТЬ |
+| `/textbin/frolovn/new` | форма создания: `path` + текст |
+| `/textbin/frolovn/update-tokens-ui-kit` | сам текст |
 | `.../update-tokens-ui-kit/edit` | правка |
 | `.../update-tokens-ui-kit/raw` | всегда `text/plain` |
-| `/healthz` и `/bankiru/healthz` | `ok` для проб |
+| `/healthz` и `/textbin/healthz` | `ok` для проб |
 
 По основному адресу отдаётся **разное в зависимости от `Accept`**: браузеру — страница
 с кнопкой «Редактировать», `curl` и ИИ-агенту — чистый `text/plain`. Один и тот же адрес
 годится и человеку, и в `WebFetch`.
 
 ```bash
-curl -X PUT --data-binary @instruction.md https://kvadratnikitosa.ru/bankiru/frolovn/update-tokens-ui-kit
-curl https://kvadratnikitosa.ru/bankiru/frolovn/update-tokens-ui-kit
+curl -X PUT --data-binary @instruction.md https://nikitosfrolov.ru/textbin/frolovn/update-tokens-ui-kit
+curl https://nikitosfrolov.ru/textbin/frolovn/update-tokens-ui-kit
 ```
 
 ## Как хранятся тексты
@@ -71,13 +72,14 @@ curl https://kvadratnikitosa.ru/bankiru/frolovn/update-tokens-ui-kit
 
 ## Деплой
 
-Сервер `root@193.124.203.221`, node через nvm, процессы под pm2 — как у kvadrat.
-Порт 8090 (3500 и 81 заняты kvadrat), сервис отдаётся на подпути `/bankiru`.
+Сервер `root@193.124.203.221`, node через nvm, процессы под pm2.
+Порт 8090 на 127.0.0.1 (3500 и 81 заняты kvadrat), сервис отдаётся на подпути
+`nikitosfrolov.ru/textbin`.
 
 ```bash
 ./deploy.sh --setup     # один раз: pm2, каталог данных, автозапуск, проверка порта
 ./deploy.sh             # залить (rsync) + pm2 startOrRestart + проверка healthz
-./deploy.sh --nginx     # напечатать location-блок для nginx
+./deploy.sh --nginx     # поставить location /textbin/ в nginx
 ./deploy.sh --logs      # живые логи
 ./deploy.sh --status    # что крутится + сколько текстов
 ./deploy.sh --backup    # скачать тексты с сервера в ./backup
@@ -91,11 +93,13 @@ curl https://kvadratnikitosa.ru/bankiru/frolovn/update-tokens-ui-kit
 /root/dev/textbin-data/   тексты — вынесены из деплой-папки, чтобы rsync --delete их не снёс
 ```
 
-Последний шаг делается руками один раз: вставить блок из `./deploy.sh --nginx` в
-server-блок `kvadratnikitosa.ru` (тот, что слушает 443) и `nginx -s reload`.
+nginx: `./deploy.sh --nginx` кладёт `deploy/nginx.textbin.conf` в
+`/etc/nginx/snippets/nikitosfrolov/textbin.conf`, проверяет `nginx -t` и перечитывает
+конфиг (при ошибке откатывает фрагмент). Сам сайт `nikitosfrolov.ru` (домен, TLS,
+`include snippets/nikitosfrolov/*.conf;`) живёт в репо `nikitosfrolov`.
 Префикс не срезается — сервис знает про него сам через `BASE_PATH`.
 
-`deploy/reference/` — исходные файлы деплоя kvadrat, по которым это сделано.
+Старый адрес `kvadratnikitosa.ru/bankiru/...` отдаёт 308 на `nikitosfrolov.ru/textbin/...`.
 
 ## Ограничения (осознанные)
 
